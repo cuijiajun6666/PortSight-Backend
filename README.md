@@ -50,7 +50,9 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/cuijiajun6666/PortSight-
 
 The script downloads the latest Ubuntu OpenD package from moomoo, extracts it under `/opt/moomoo-opend`, asks for your moomoo account and password in the SSH terminal, creates a `moomoo-opend` systemd service, and starts OpenD for first login.
 
-If moomoo asks for device verification or 2FA, confirm it in the moomoo app. After first login succeeds, restart OpenD as a background service:
+If moomoo asks for device verification or 2FA, confirm it in the moomoo app. After first login succeeds, type `exit` at the OpenD `>>>` prompt. The script will then restart OpenD in the background and run verification.
+
+Manual OpenD restart:
 
 ```bash
 systemctl restart moomoo-opend
@@ -61,6 +63,12 @@ Then restart the backend:
 
 ```bash
 systemctl restart moomoo-backend
+```
+
+Run server verification:
+
+```bash
+bash /opt/moomoo-backend/app/deploy/verify_server.sh
 ```
 
 ## Backend Service Commands

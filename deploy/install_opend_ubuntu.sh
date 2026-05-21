@@ -73,9 +73,26 @@ systemctl enable "${SERVICE_NAME}"
 echo
 echo "Starting OpenD in this terminal for first login."
 echo "If moomoo asks for device verification or 2FA, confirm it in your moomoo app."
-echo "After login succeeds, press Ctrl+C if it stays attached here, then run:"
-echo "  systemctl restart ${SERVICE_NAME}"
-echo "  systemctl status ${SERVICE_NAME} --no-pager"
+echo "After login succeeds, type 'exit' at the OpenD >>> prompt to let this script finish."
 echo
 
+set +e
 "${OPEND_BIN}" -login_account="${MOOMOO_ACCOUNT}" -login_pwd="${MOOMOO_PASSWORD}" -lang=en
+OPEND_EXIT_CODE=$?
+set -e
+
+echo
+echo "Starting OpenD as a background service..."
+systemctl restart "${SERVICE_NAME}"
+systemctl status "${SERVICE_NAME}" --no-pager -l | sed -n '1,12p'
+
+if systemctl list-unit-files moomoo-backend.service >/dev/null 2>&1; then
+  echo
+  echo "Restarting backend and running verification..."
+  systemctl restart moomoo-backend
+  if [[ -x /opt/moomoo-backend/app/deploy/verify_server.sh ]]; then
+    /opt/moomoo-backend/app/deploy/verify_server.sh
+  fi
+fi
+
+exit "${OPEND_EXIT_CODE}"
