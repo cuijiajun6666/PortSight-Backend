@@ -77,6 +77,17 @@ def has_snapshot_for_date(trading_date: str) -> bool:
     )
 
 
+def get_latest_valid_principal(min_principal: float = 1000.0):
+    for snapshot in reversed(load_snapshots()):
+        try:
+            principal = float(snapshot.get("principal", 0))
+        except (TypeError, ValueError):
+            continue
+        if principal >= min_principal:
+            return principal
+    return None
+
+
 def upsert_snapshot(trading_date: str, total_assets: float, principal: float):
     snapshots = load_snapshots()
     now = datetime.now(ZoneInfo("UTC")).isoformat()

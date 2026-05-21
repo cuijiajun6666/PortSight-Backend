@@ -46,6 +46,9 @@ def refresh_latest_closed_snapshot(force: bool = False):
     if snapshot is None:
         print("补记最近收盘资产失败：获取账户资产失败")
         return False
+    if snapshot.get("principal_guarded"):
+        print("跳过资产快照写入：本金触发历史兜底保护", trading_date_str)
+        return False
 
     upsert_snapshot(
         trading_date=trading_date_str,

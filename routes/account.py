@@ -3,6 +3,7 @@ from fastapi import APIRouter, Query
 from moomoo import *
 
 from config import HOST, PORT
+from asset_snapshots import get_latest_valid_principal
 from principal import (
     update_today_principal,
     get_principal_total,
@@ -12,6 +13,8 @@ from principal import (
 )
 
 router = APIRouter()
+
+PRINCIPAL_DRIFT_LIMIT = 0.20
 
 
 def create_trade_context():
@@ -53,6 +56,27 @@ def get_cash_by_currency(row):
 
     return cash_by_currency
 
+
+def guarded_principal_total(calculated_principal: float):
+    fallback_principal = get_latest_valid_principal()
+    if fallback_principal is None:
+        return calculated_principal, False, None
+
+    if calculated_principal <= 0:
+        return fallback_principal, True, fallback_principal
+
+    drift = abs(calculated_principal - fallback_principal) / fallback_principal
+    if drift > PRINCIPAL_DRIFT_LIMIT:
+        print(
+            "本金计算偏离历史快照，使用历史本金兜底:",
+            calculated_principal,
+            "->",
+            fallback_principal
+        )
+        return fallback_principal, True, fallback_principal
+
+    return calculated_principal, False, fallback_principal
+
 @router.get("/account")
 def get_account():
     trd_ctx = create_trade_context()
@@ -72,7 +96,10 @@ def get_account():
 
     # 👉 本金：启动时全量缓存，之后每次刷新只检查新增入金/出金流水
     principal_dict = update_today_principal(trd_ctx)
-    principal_total = get_principal_total(aud_to_usd_rate)
+    calculated_principal_total = get_principal_total(aud_to_usd_rate)
+    principal_total, principal_guarded, fallback_principal = guarded_principal_total(
+        calculated_principal_total
+    )
     principal_usd = get_principal_usd(aud_to_usd_rate)
 
     trd_ctx.close()
@@ -86,6 +113,9 @@ def get_account():
         "market_value": float(row.get("market_val", 0)),
         "principal": principal_usd,
         "principal_total": principal_total,
+        "calculated_principal_total": calculated_principal_total,
+        "principal_guarded": principal_guarded,
+        "fallback_principal": fallback_principal,
         "principal_original": principal_dict,
         "aud_to_usd_rate": aud_to_usd_rate,
         "currency": str(row.get("currency", "USD"))
@@ -104,7 +134,10 @@ def fetch_account_snapshot():
     aud_to_usd_rate = get_aud_to_usd_rate(row, aud_row)
 
     principal_dict = update_today_principal(trd_ctx)
-    principal_total = get_principal_total(aud_to_usd_rate)
+    calculated_principal_total = get_principal_total(aud_to_usd_rate)
+    principal_total, principal_guarded, fallback_principal = guarded_principal_total(
+        calculated_principal_total
+    )
     principal_usd = get_principal_usd(aud_to_usd_rate)
 
     trd_ctx.close()
@@ -112,6 +145,9 @@ def fetch_account_snapshot():
     return {
         "total_assets": float(row.get("total_assets")),
         "principal": principal_total,
+        "calculated_principal": calculated_principal_total,
+        "principal_guarded": principal_guarded,
+        "fallback_principal": fallback_principal,
         "principal_by_currency": principal_usd,
         "principal_original": principal_dict,
         "aud_to_usd_rate": aud_to_usd_rate
