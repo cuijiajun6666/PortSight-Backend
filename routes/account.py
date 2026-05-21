@@ -14,8 +14,6 @@ from principal import (
 
 router = APIRouter()
 
-PRINCIPAL_DRIFT_LIMIT = 0.20
-
 
 def create_trade_context():
     return OpenSecTradeContext(
@@ -65,10 +63,9 @@ def guarded_principal_total(calculated_principal: float):
     if calculated_principal <= 0:
         return fallback_principal, True, fallback_principal
 
-    drift = abs(calculated_principal - fallback_principal) / fallback_principal
-    if drift > PRINCIPAL_DRIFT_LIMIT:
+    if calculated_principal < 1000 and fallback_principal >= 1000:
         print(
-            "本金计算偏离历史快照，使用历史本金兜底:",
+            "本金计算疑似不完整，使用历史本金兜底:",
             calculated_principal,
             "->",
             fallback_principal
