@@ -18,25 +18,39 @@ def get_asset_snapshots():
     }
 
 
+@router.post("/asset_snapshots/refresh_latest")
+def refresh_latest_asset_snapshot():
+    updated = refresh_latest_closed_snapshot(force=True)
+    return {
+        "ok": updated,
+        "snapshots": load_snapshots()
+    }
+
+
 def refresh_latest_closed_snapshot_if_missing():
+    refresh_latest_closed_snapshot(force=False)
+
+
+def refresh_latest_closed_snapshot(force: bool = False):
     trading_date = get_latest_closed_trading_date()
     if trading_date is None:
-        return
+        return False
 
     trading_date_str = trading_date.isoformat()
-    if has_snapshot_for_date(trading_date_str):
-        return
+    if not force and has_snapshot_for_date(trading_date_str):
+        return False
 
     from routes.account import fetch_account_snapshot
 
     snapshot = fetch_account_snapshot()
     if snapshot is None:
         print("补记最近收盘资产失败：获取账户资产失败")
-        return
+        return False
 
     upsert_snapshot(
         trading_date=trading_date_str,
         total_assets=snapshot["total_assets"],
         principal=snapshot["principal"]
     )
-    print("补记最近收盘资产:", trading_date_str)
+    print("刷新最近收盘资产:" if force else "补记最近收盘资产:", trading_date_str)
+    return True

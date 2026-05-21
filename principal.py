@@ -24,7 +24,8 @@ seen_principal_flows = set()
 
 
 def is_currency_exchange_flow(row):
-    return "货币兑换" in str(row.get("cashflow_type", ""))
+    cashflow_type = str(row.get("cashflow_type", "")).lower()
+    return "货币兑换" in cashflow_type or "currency exchange" in cashflow_type
 
 
 def is_principal_flow(row):
