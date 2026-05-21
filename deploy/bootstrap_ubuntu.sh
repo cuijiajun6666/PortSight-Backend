@@ -14,6 +14,7 @@ SERVICE_USER="${SERVICE_USER:-moomoo}"
 SERVICE_NAME="${SERVICE_NAME:-moomoo-backend}"
 OPEND_HOST="${MOOMOO_OPEND_HOST:-127.0.0.1}"
 OPEND_PORT="${MOOMOO_OPEND_PORT:-11111}"
+INSTALL_OPEND="${INSTALL_OPEND:-0}"
 
 if [[ -z "${REPO_URL}" ]]; then
   echo "Missing REPO_URL. Example:"
@@ -41,6 +42,7 @@ if ! id "${SERVICE_USER}" >/dev/null 2>&1; then
 fi
 
 mkdir -p "$(dirname "${APP_DIR}")" "${DATA_DIR}"
+git config --global --add safe.directory "${APP_DIR}" 2>/dev/null || true
 
 if [[ -d "${APP_DIR}/.git" ]]; then
   git -C "${APP_DIR}" pull --ff-only
@@ -99,4 +101,11 @@ echo
 echo "View logs:"
 echo "  journalctl -u ${SERVICE_NAME} -f"
 echo
-echo "OpenD still needs to be installed and logged in on this server."
+if [[ "${INSTALL_OPEND}" == "1" || "${INSTALL_OPEND}" == "true" ]]; then
+  echo "INSTALL_OPEND=${INSTALL_OPEND}; starting OpenD install and first login."
+  bash "${APP_DIR}/deploy/install_opend_ubuntu.sh"
+else
+  echo "OpenD still needs to be installed and logged in on this server."
+  echo "To install it now:"
+  echo "  bash ${APP_DIR}/deploy/install_opend_ubuntu.sh"
+fi

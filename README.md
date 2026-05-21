@@ -34,6 +34,12 @@ If you omit `BACKEND_PUBLIC_URL`, the deploy script will try to detect the serve
 
 The script installs system dependencies, clones this repo to `/opt/moomoo-backend/app`, creates `/opt/moomoo-backend/data`, installs Python packages, creates a systemd service, opens port `8000`, and starts the backend.
 
+To deploy the backend and then immediately install/start OpenD for first login, add `INSTALL_OPEND=1`:
+
+```bash
+REPO_URL=https://github.com/cuijiajun6666/PortSight-Backend.git BACKEND_PUBLIC_URL=http://YOUR_SERVER_IP:8000 INSTALL_OPEND=1 bash -c "$(curl -fsSL https://raw.githubusercontent.com/cuijiajun6666/PortSight-Backend/main/deploy/bootstrap_ubuntu.sh)"
+```
+
 ## Install OpenD On Ubuntu
 
 After deploying the backend, install and start moomoo OpenD on the same server:
@@ -86,6 +92,7 @@ systemctl restart moomoo-backend
 Update backend after pushing code:
 
 ```bash
+git config --global --add safe.directory /opt/moomoo-backend/app
 cd /opt/moomoo-backend/app
 git pull
 systemctl restart moomoo-backend
