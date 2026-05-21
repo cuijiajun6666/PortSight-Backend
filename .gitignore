@@ -4,6 +4,8 @@ __pycache__/
 .DS_Store
 .idea/
 
-# Runtime data should be backed up/deployed separately from code.
-data/
+# Runtime data should usually be backed up/deployed separately from code.
+data/*
 *.json
+!data/
+!data/asset_snapshots.json

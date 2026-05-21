@@ -1,0 +1,44 @@
+[
+  {
+    "trading_date": "2026-05-02",
+    "recorded_at": "2026-05-02T07:27:46.510493+00:00",
+    "total_assets": 77581.4103,
+    "principal": 0
+  },
+  {
+    "trading_date": "2026-05-04",
+    "recorded_at": "2026-05-05T02:46:42.866866+00:00",
+    "total_assets": 73516.3123,
+    "principal": 0
+  },
+  {
+    "trading_date": "2026-05-14",
+    "recorded_at": "2026-05-15T03:31:26.016494+00:00",
+    "total_assets": 81871.0492,
+    "principal": 0
+  },
+  {
+    "trading_date": "2026-05-15",
+    "recorded_at": "2026-05-17T03:57:28.636680+00:00",
+    "total_assets": 89610.5854,
+    "principal": 90356.16548630559
+  },
+  {
+    "trading_date": "2026-05-18",
+    "recorded_at": "2026-05-18T20:10:00.497715+00:00",
+    "total_assets": 88482.0862,
+    "principal": 90399.27547056446
+  },
+  {
+    "trading_date": "2026-05-19",
+    "recorded_at": "2026-05-19T23:20:26.546953+00:00",
+    "total_assets": 80171.4323,
+    "principal": 90279.55266602221
+  },
+  {
+    "trading_date": "2026-05-20",
+    "recorded_at": "2026-05-21T10:13:34.847723+00:00",
+    "total_assets": 85603.5038,
+    "principal": 90335.36956156755
+  }
+]
