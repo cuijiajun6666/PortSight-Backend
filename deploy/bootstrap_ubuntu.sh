@@ -51,6 +51,10 @@ else
   git clone "${REPO_URL}" "${APP_DIR}"
 fi
 
+if [[ ! -f "${DATA_DIR}/asset_snapshots.json" && -f "${APP_DIR}/data/asset_snapshots.json" ]]; then
+  cp "${APP_DIR}/data/asset_snapshots.json" "${DATA_DIR}/asset_snapshots.json"
+fi
+
 python3 -m venv "${APP_DIR}/.venv"
 "${APP_DIR}/.venv/bin/python" -m pip install --upgrade pip
 "${APP_DIR}/.venv/bin/python" -m pip install -r "${APP_DIR}/requirements.txt"

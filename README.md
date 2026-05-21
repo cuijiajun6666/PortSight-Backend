@@ -71,6 +71,15 @@ Run server verification:
 bash /opt/moomoo-backend/app/deploy/verify_server.sh
 ```
 
+Sync tracked asset snapshot history into the server runtime data directory:
+
+```bash
+cd /opt/moomoo-backend/app
+git pull
+bash deploy/sync_asset_snapshots.sh
+systemctl restart moomoo-backend
+```
+
 ## Backend Service Commands
 
 Check service status:
