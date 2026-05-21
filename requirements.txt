@@ -1,0 +1,6 @@
+fastapi==0.136.1
+uvicorn==0.46.0
+APScheduler==3.11.2
+moomoo-api==10.4.6408
+pandas==3.0.2
+pandas-market-calendars==5.3.2
