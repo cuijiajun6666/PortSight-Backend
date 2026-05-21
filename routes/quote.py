@@ -64,18 +64,14 @@ def get_quote(symbol: str):
     open_price = safe_float(row.get("open_price"))
     high_price = safe_float(row.get("high_price"))
     low_price = safe_float(row.get("low_price"))
-    prev_close = safe_float(row.get("last_price"))
+    prev_close = safe_float(row.get("prev_close_price"))
+    if prev_close <= 0:
+        prev_close = safe_float(row.get("last_close_price"))
+    if prev_close <= 0:
+        prev_close = last_price
 
     # ✅ 只用最新价
     display_price = last_price
-
-    display_open = open_price if open_price > 0 else prev_close
-    display_high = high_price if high_price > 0 else prev_close
-    display_low = low_price if low_price > 0 else prev_close
-
-    change = display_price - prev_close if prev_close > 0 else 0
-    change_percent = change / prev_close * 100 if prev_close > 0 else 0
-
 
     display_open = open_price if open_price > 0 else prev_close
     display_high = high_price if high_price > 0 else prev_close
@@ -90,7 +86,8 @@ def get_quote(symbol: str):
         "name": str(row.get("name", "")),
 
         "price": display_price,
-        "prev_close_price": last_price,
+        "prev_close_price": prev_close,
+        "previous_close": prev_close,
 
         "open_price": display_open,
         "high_price": display_high,
