@@ -1,8 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from moomoo import *
-from config import BACKEND_PUBLIC_URL, HOST, PORT
-from principal import init_principal_cache
+from config import BACKEND_PUBLIC_URL
 from routes.account import router as account_router
 from routes.positions import router as positions_router
 from routes.quote import router as quote_router
@@ -70,15 +68,6 @@ def sync_market_intraday_if_needed():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    trd_ctx = OpenSecTradeContext(
-        filter_trdmarket=TrdMarket.US,
-        host=HOST,
-        port=PORT,
-        security_firm=SecurityFirm.FUTUAU
-    )
-    init_principal_cache(trd_ctx)
-    trd_ctx.close()
-    record_initial_asset_snapshot_if_needed()
     scheduler.add_job(
         record_daily_asset_snapshot,
         "cron",
@@ -97,9 +86,6 @@ async def lifespan(app: FastAPI):
         replace_existing=True
     )
     scheduler.start()
-    # 启动时也检查一次，避免后端刚好在收盘后才打开
-    record_daily_asset_snapshot()
-    sync_market_intraday_if_needed()
     print(f"🚀 后端启动完成: {BACKEND_PUBLIC_URL}")
     yield
     scheduler.shutdown()
