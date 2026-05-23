@@ -1,5 +1,5 @@
 # routes/market_status.py
-from datetime import datetime, time
+from datetime import datetime, time as dt_time
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Response as FastAPIResponse
@@ -37,8 +37,8 @@ def get_us_market_session(now=None):
 
     market_open = schedule.iloc[0]["market_open"].to_pydatetime()
     market_close = schedule.iloc[0]["market_close"].to_pydatetime()
-    premarket_open = datetime.combine(now_ny.date(), time(4, 0), NY_TZ).astimezone(UTC_TZ)
-    after_hours_close = datetime.combine(now_ny.date(), time(20, 0), NY_TZ).astimezone(UTC_TZ)
+    premarket_open = datetime.combine(now_ny.date(), dt_time(4, 0), NY_TZ).astimezone(UTC_TZ)
+    after_hours_close = datetime.combine(now_ny.date(), dt_time(20, 0), NY_TZ).astimezone(UTC_TZ)
 
     is_regular_open = market_open <= now_utc < market_close
     is_premarket = premarket_open <= now_utc < market_open
