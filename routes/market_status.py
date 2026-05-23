@@ -2,7 +2,7 @@
 from datetime import datetime, time
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Response as FastAPIResponse
 from moomoo import *
 import pandas_market_calendars as mcal
 
@@ -73,7 +73,7 @@ def get_us_market_session(now=None):
 
 
 @router.get("/market_status")
-def get_market_status(response: Response):
+def get_market_status(response: FastAPIResponse):
     response.headers["Cache-Control"] = "no-store"
     quote_ctx = OpenQuoteContext(host=HOST, port=PORT)
 
