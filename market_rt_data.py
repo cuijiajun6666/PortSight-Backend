@@ -4,6 +4,7 @@ import argparse
 import json
 import math
 import os
+import threading
 import time
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -36,6 +37,7 @@ REAL_INDEX_BY_CHART_CODE = {
     "US.DIA": "US..DJI",
 }
 MARKET_INTRADAY_FILE = DATA_DIR / "market_intraday_cache.json"
+CACHE_LOCK = threading.RLock()
 NY_TZ = ZoneInfo("America/New_York")
 NYSE = mcal.get_calendar("NYSE")
 
@@ -140,19 +142,33 @@ def _history_kline_to_rt_shape(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_intraday_cache() -> dict:
-    if not os.path.exists(MARKET_INTRADAY_FILE):
-        return {"updated_at": None, "dates": {}, "completed_dates": {}}
-    with open(MARKET_INTRADAY_FILE, "r") as f:
-        cache = json.load(f)
+    with CACHE_LOCK:
+        if not os.path.exists(MARKET_INTRADAY_FILE):
+            return {"updated_at": None, "dates": {}, "completed_dates": {}}
+        try:
+            with open(MARKET_INTRADAY_FILE, "r") as f:
+                cache = json.load(f)
+        except json.JSONDecodeError as exc:
+            broken_file = MARKET_INTRADAY_FILE.with_suffix(
+                f".broken-{datetime.now(ZoneInfo('UTC')).strftime('%Y%m%d%H%M%S')}.json"
+            )
+            os.replace(MARKET_INTRADAY_FILE, broken_file)
+            print(f"大盘分时缓存 JSON 损坏，已隔离: {broken_file} ({exc})")
+            return {"updated_at": None, "dates": {}, "completed_dates": {}}
     cache.setdefault("dates", {})
     cache.setdefault("completed_dates", {})
     return cache
 
 
 def save_intraday_cache(cache: dict):
-    cache["updated_at"] = datetime.now(ZoneInfo("UTC")).isoformat()
-    with open(MARKET_INTRADAY_FILE, "w") as f:
-        json.dump(cache, f, ensure_ascii=False, indent=2, allow_nan=False)
+    with CACHE_LOCK:
+        cache["updated_at"] = datetime.now(ZoneInfo("UTC")).isoformat()
+        tmp_file = MARKET_INTRADAY_FILE.with_suffix(".tmp")
+        with open(tmp_file, "w") as f:
+            json.dump(cache, f, ensure_ascii=False, indent=2, allow_nan=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_file, MARKET_INTRADAY_FILE)
 
 
 def prune_intraday_cache(cache: dict, keep_date: date) -> dict:
@@ -218,23 +234,24 @@ def upsert_intraday_frames(
     mark_complete: bool = False,
     prune_before_save: bool = False,
 ) -> dict:
-    cache = load_intraday_cache()
-    if prune_before_save:
-        cache = prune_intraday_cache(cache, trading_day)
+    with CACHE_LOCK:
+        cache = load_intraday_cache()
+        if prune_before_save:
+            cache = prune_intraday_cache(cache, trading_day)
 
-    date_key = trading_day.isoformat()
-    cache.setdefault("dates", {}).setdefault(date_key, {})
-    cache.setdefault("completed_dates", {}).setdefault(date_key, {})
+        date_key = trading_day.isoformat()
+        cache.setdefault("dates", {}).setdefault(date_key, {})
+        cache.setdefault("completed_dates", {}).setdefault(date_key, {})
 
-    for code, frame in frames.items():
-        incoming = _frame_to_records(frame)
-        existing = cache["dates"][date_key].get(code, [])
-        cache["dates"][date_key][code] = _merge_records(existing, incoming)
-        if mark_complete:
-            cache["completed_dates"][date_key][code] = True
+        for code, frame in frames.items():
+            incoming = _frame_to_records(frame)
+            existing = cache["dates"][date_key].get(code, [])
+            cache["dates"][date_key][code] = _merge_records(existing, incoming)
+            if mark_complete:
+                cache["completed_dates"][date_key][code] = True
 
-    save_intraday_cache(cache)
-    return cache
+        save_intraday_cache(cache)
+        return cache
 
 
 def get_cached_intraday(trading_day: date, codes: list[str]) -> dict[str, list[dict]]:
