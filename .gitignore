@@ -9,3 +9,4 @@ data/*
 *.json
 !data/
 !data/asset_snapshots.json
+!data/trade_deals.json

@@ -77,7 +77,7 @@ def frame_to_deals(data):
 def load_deal_cache():
     with DEALS_LOCK:
         if not os.path.exists(DEALS_FILE):
-            return {"updated_at": None, "deals": []}
+            return {"updated_at": None, "synced_history_dates": [], "deals": []}
         try:
             with open(DEALS_FILE, "r") as f:
                 cache = json.load(f)
@@ -89,6 +89,7 @@ def load_deal_cache():
             print(f"成交缓存 JSON 损坏，已隔离: {broken_file}")
             return {"updated_at": None, "deals": []}
         cache.setdefault("deals", [])
+        cache.setdefault("synced_history_dates", [])
         return cache
 
 
@@ -103,9 +104,9 @@ def save_deal_cache(cache):
         os.replace(tmp_file, DEALS_FILE)
 
 
-def upsert_deals(deals):
+def upsert_deals(deals, cache=None, save: bool = True):
     with DEALS_LOCK:
-        cache = load_deal_cache()
+        cache = cache or load_deal_cache()
         by_id = {
             str(deal.get("deal_id", "")): deal
             for deal in cache.get("deals", [])
@@ -126,18 +127,36 @@ def upsert_deals(deals):
             key=lambda item: str(item.get("create_time", "")),
             reverse=True
         )
-        save_deal_cache(cache)
+        if save:
+            save_deal_cache(cache)
         return inserted
 
 
-def sync_known_history_deals(dates=None, sleep_seconds: float = 3.2):
+def sync_known_history_deals(dates=None, sleep_seconds: float = 3.2, force: bool = False):
     dates = [normalize_date(date) for date in (dates or KNOWN_DEAL_DATES)]
+    cache = load_deal_cache()
+    synced_dates = set(cache.get("synced_history_dates", []))
+    dates_to_query = dates if force else [day for day in dates if day not in synced_dates]
+
+    if not dates_to_query:
+        return {
+            "ok": True,
+            "skipped": True,
+            "reason": "all_known_dates_already_synced",
+            "known_dates": dates,
+            "synced_history_dates": sorted(synced_dates),
+            "missing_known_dates": [],
+            "inserted": 0,
+            "results": [],
+            "cache": cache
+        }
+
     trd_ctx = create_trade_context()
     results = []
     total_inserted = 0
 
     try:
-        for index, day in enumerate(dates):
+        for index, day in enumerate(dates_to_query):
             ret, data = trd_ctx.history_deal_list_query(
                 code="",
                 start=day,
@@ -150,18 +169,26 @@ def sync_known_history_deals(dates=None, sleep_seconds: float = 3.2):
                 results.append({"date": day, "ok": False, "error": str(data), "count": 0})
             else:
                 deals = frame_to_deals(data)
-                inserted = upsert_deals(deals)
+                inserted = upsert_deals(deals, cache=cache, save=False)
+                synced_dates.add(day)
+                cache["synced_history_dates"] = sorted(synced_dates)
                 total_inserted += inserted
                 results.append({"date": day, "ok": True, "count": len(deals), "inserted": inserted})
 
-            if index < len(dates) - 1:
+            if index < len(dates_to_query) - 1:
                 time.sleep(sleep_seconds)
     finally:
         trd_ctx.close()
 
+    save_deal_cache(cache)
+    missing_known_dates = [day for day in dates if day not in synced_dates]
+
     return {
-        "ok": True,
-        "dates": len(dates),
+        "ok": len(missing_known_dates) == 0,
+        "known_dates": dates,
+        "queried_dates": dates_to_query,
+        "synced_history_dates": sorted(synced_dates),
+        "missing_known_dates": missing_known_dates,
         "inserted": total_inserted,
         "results": results,
         "cache": load_deal_cache()

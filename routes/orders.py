@@ -147,5 +147,5 @@ def get_cached_deals():
 
 
 @router.post("/deals/sync_known_history")
-def sync_known_history():
-    return sync_known_history_deals()
+def sync_known_history(force: bool = False):
+    return sync_known_history_deals(force=force)

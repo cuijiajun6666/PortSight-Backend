@@ -80,6 +80,20 @@ bash deploy/sync_asset_snapshots.sh
 systemctl restart moomoo-backend
 ```
 
+Push tracked runtime JSON data back to GitHub:
+
+```bash
+bash /opt/moomoo-backend/app/deploy/push_runtime_data.sh
+```
+
+Install the daily runtime JSON push timer:
+
+```bash
+bash /opt/moomoo-backend/app/deploy/install_runtime_data_push_timer.sh
+```
+
+The timer runs daily at `22:30 UTC`, after the usual US market close snapshot job.
+
 ## Backend Service Commands
 
 Check service status:
