@@ -9,6 +9,7 @@ from routes.quote import router as quote_router
 from routes.account import fetch_account_snapshot
 from routes.market_status import router as market_status_router
 from routes.market_intraday import router as market_intraday_router
+from routes.orders import router as orders_router
 from market_rt_data import sync_market_intraday_cache
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
@@ -123,3 +124,4 @@ app.include_router(quote_router)
 app.include_router(snapshots_router)
 app.include_router(market_status_router)
 app.include_router(market_intraday_router)
+app.include_router(orders_router)
