@@ -33,6 +33,16 @@ def frame_to_orders(data):
     return orders
 
 
+def frame_to_deals(data):
+    deals = []
+    for _, row in data.iterrows():
+        record = {key: json_value(value) for key, value in row.to_dict().items()}
+        record["deal_id"] = str(record.get("deal_id", ""))
+        record["order_id"] = str(record.get("order_id", ""))
+        deals.append(record)
+    return deals
+
+
 @router.get("/orders/history")
 def get_history_orders(
     code: str = "",
@@ -76,3 +86,45 @@ def get_history_orders_legacy(
     status: list[str] | None = FastAPIQuery(default=None),
 ):
     return get_history_orders(code=code, start=start, end=end, status=status)
+
+
+@router.get("/deals/history")
+def get_history_deals(
+    code: str = "",
+    start: str = "",
+    end: str = "",
+):
+    trd_ctx = create_trade_context()
+    try:
+        ret, data = trd_ctx.history_deal_list_query(
+            code=code,
+            start=start,
+            end=end,
+            trd_env=TrdEnv.REAL,
+            deal_market=TrdMarket.NONE
+        )
+    finally:
+        trd_ctx.close()
+
+    if ret != RET_OK:
+        return {
+            "ok": False,
+            "error": str(data),
+            "deals": []
+        }
+
+    deals = frame_to_deals(data)
+    return {
+        "ok": True,
+        "count": len(deals),
+        "deals": deals
+    }
+
+
+@router.get("/history_deals")
+def get_history_deals_legacy(
+    code: str = "",
+    start: str = "",
+    end: str = "",
+):
+    return get_history_deals(code=code, start=start, end=end)
