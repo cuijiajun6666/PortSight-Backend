@@ -2,6 +2,10 @@ from fastapi import APIRouter, Query as FastAPIQuery
 from moomoo import *
 
 from config import HOST, PORT
+from deal_cache import (
+    load_deal_cache,
+    sync_known_history_deals,
+)
 
 router = APIRouter()
 
@@ -128,3 +132,20 @@ def get_history_deals_legacy(
     end: str = "",
 ):
     return get_history_deals(code=code, start=start, end=end)
+
+
+@router.get("/deals")
+def get_cached_deals():
+    cache = load_deal_cache()
+    deals = cache.get("deals", [])
+    return {
+        "ok": True,
+        "updated_at": cache.get("updated_at"),
+        "count": len(deals),
+        "deals": deals
+    }
+
+
+@router.post("/deals/sync_known_history")
+def sync_known_history():
+    return sync_known_history_deals()

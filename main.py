@@ -11,6 +11,7 @@ from routes.market_status import router as market_status_router
 from routes.market_intraday import router as market_intraday_router
 from routes.orders import router as orders_router
 from market_rt_data import sync_market_intraday_cache
+from deal_cache import start_deal_push_listener, stop_deal_push_listener
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -98,11 +99,13 @@ async def lifespan(app: FastAPI):
         replace_existing=True
     )
     scheduler.start()
+    start_deal_push_listener()
     # 启动时也检查一次，避免后端刚好在收盘后才打开
     record_daily_asset_snapshot()
     sync_market_intraday_if_needed()
     print(f"🚀 后端启动完成: {BACKEND_PUBLIC_URL}")
     yield
+    stop_deal_push_listener()
     scheduler.shutdown()
     print("🛑 后端关闭")
 app = FastAPI(lifespan=lifespan)
